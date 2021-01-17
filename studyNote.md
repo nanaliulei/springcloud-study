@@ -49,7 +49,7 @@ springcloud要解决问题就是微服务架构实施中会遇到的一些问题
 
 ![image-20210114193912050](C:\Users\ll\AppData\Roaming\Typora\typora-user-images\image-20210114193912050.png)
 
-	### 工作机制
+### 工作机制
 
 ![image-20210114194322704](C:\Users\ll\AppData\Roaming\Typora\typora-user-images\image-20210114194322704.png)
 
