@@ -59,3 +59,71 @@ springcloud要解决问题就是微服务架构实施中会遇到的一些问题
 * 使用Eureka或Nacos注册中心进行服务注册与发现；
 * 使用springcloud Config或nacos、apollo作为配置中心，进行配置的集中管理；
 * 使用消息总线（消息队列实现）进行配置中心的配置同步。
+
+## 负载均衡ribbon
+
+### 源码分析
+
+**@LoadBalanced注解**
+
+```
+/**
+ * Annotation to mark a RestTemplate or WebClient bean to be configured to use a
+ * LoadBalancerClient.
+ * 注解里本身没什么内容，只是标识添加了该注解的RestTemplate会被配置成一个LoadBalanceClient来使用
+ * @author Spencer Gibb
+ */
+@Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@Qualifier
+public @interface LoadBalanced {
+
+}
+```
+
+**经验：**springcloud使用了springboot的自动装配机制，因此在对应的包下spring.factories下查找。在spring-cloud-netflix-ribbon-2.2.6.RELEASE.jar包下找到了
+
+```
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+org.springframework.cloud.netflix.ribbon.RibbonAutoConfiguration
+```
+
+**RibbonAutoConfiguration分析**
+
+* 注解分析
+
+```
+@Configuration
+@Conditional(RibbonAutoConfiguration.RibbonClassesConditions.class)
+@RibbonClients
+//在加载完EurekaClientAutoConfiguration之后再加载RibbonAutoConfiguration
+@AutoConfigureAfter(
+      name = "org.springframework.cloud.netflix.eureka.EurekaClientAutoConfiguration")
+//在加载LoadBalancerAutoConfiguration、AsyncLoadBalancerAutoConfiguration之前加载RibbonAutoConfiguration
+@AutoConfigureBefore({ LoadBalancerAutoConfiguration.class,
+      AsyncLoadBalancerAutoConfiguration.class })
+@EnableConfigurationProperties({ RibbonEagerLoadProperties.class,
+      ServerIntrospectorProperties.class })
+public class RibbonAutoConfiguration {******}
+```
+
+**LoadBalancerAutoConfiguration分析**
+
+```
+@Configuration(proxyBeanMethods = false)
+//只有存在RestTemplate这个类时，才会加载类中的bean
+@ConditionalOnClass(RestTemplate.class)
+//只有springcontext中加载了LoadBalancerClient这个bean，才会加载类中的bean
+@ConditionalOnBean(LoadBalancerClient.class)
+@EnableConfigurationProperties(LoadBalancerRetryProperties.class)
+public class LoadBalancerAutoConfiguration {
+	//加载所有添加了@LoadBalanced的RestTemplate
+	@LoadBalanced
+	@Autowired(required = false)
+	private List<RestTemplate> restTemplates = Collections.emptyList();
+******
+}
+```
+
